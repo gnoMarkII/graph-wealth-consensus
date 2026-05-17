@@ -1,101 +1,104 @@
 # Graph-Wealth-Consensus
 
-An AI-driven Investment Analysis Pipeline that automatically fetches YouTube transcripts, summarizes financial insights using Google Gemini, and organizes them into a searchable **Knowledge Graph** within **Obsidian**.
+ระบบ pipeline อัตโนมัติที่ดึง transcript จากคลิป YouTube ของนักวิเคราะห์การลงทุน สรุปเนื้อหาด้วย Google Gemini AI และจัดเก็บเป็น **Knowledge Graph** ใน Obsidian
 
-This tool is designed for value investors and financial content creators who want to find a "Consensus" among various market analysts without spending hours watching every single video.
-
----
-
-## Features
-
-- **Automated Transcription** — Fetches subtitles from YouTube videos to bypass manual note-taking
-- **AI-Powered Summarization** — Uses Google Gemini to extract key insights (Market View, Key Numbers, Recommended Assets, and Risks)
-- **Auto-Linking Knowledge Graph** — Automatically wraps stock tickers, assets, and macro terms in `[[ ]]` for seamless integration with Obsidian's Graph View
-- **Smart Rate-Limit Handling** — Built-in retry mechanism to handle API quotas (Error 429) automatically
-- **Timezone-Aware Organization** — Automatically sorts summaries into folders by `Year > Week > Analyst` based on Thailand's timezone (ICT)
-- **Duplicate Prevention** — History tracking skips already-processed videos across runs
+เครื่องมือนี้ออกแบบมาสำหรับนักลงทุนที่ต้องการหา "Consensus" จากนักวิเคราะห์หลายคน โดยไม่ต้องเสียเวลานั่งดูทุกคลิปด้วยตนเอง
 
 ---
 
-## Pipeline Overview
+## คุณสมบัติหลัก
+
+- **ดึง Transcript อัตโนมัติ** — ดึงซับไตเติ้ลจากคลิป YouTube แทนการจดด้วยมือ
+- **สรุปด้วย AI** — ใช้ Google Gemini แยกแยะข้อมูลสำคัญ (มุมมองตลาด, ตัวเลขสำคัญ, สินทรัพย์แนะนำ, และความเสี่ยง)
+- **Knowledge Graph อัตโนมัติ** — ห่อชื่อหุ้น สินทรัพย์ และ Macro terms ด้วย `[[ ]]` เพื่อสร้าง backlinks ใน Obsidian Graph View
+- **Retry อัจฉริยะ** — จัดการ Rate Limit ของ API (Error 429/503) ด้วย exponential backoff โดยอัตโนมัติ
+- **จัดโฟลเดอร์ตาม Timezone ไทย** — เรียงบันทึกตาม `ปี > สัปดาห์ > นักวิเคราะห์` โดยอิง ICT (UTC+7)
+- **ป้องกันซ้ำซ้อน** — บันทึกประวัติ URL ที่ผ่านมาแล้ว ข้ามการประมวลผลซ้ำในรันถัดไป
+
+---
+
+## ภาพรวม Pipeline
 
 ```
 inputs/videos.json
        │
        ▼
-YouTubeFetcher        — fetch transcript + video title/date
+YouTubeFetcher        — ดึง transcript + ชื่อ/วันที่วิดีโอ
        │
        ▼
-Gemini LLM            — summarize with [[Knowledge Graph]] links
+Gemini LLM            — สรุปเนื้อหา พร้อมใส่ [[Knowledge Graph]] links
        │
        ▼
-ObsidianManager       — save .md to vault/ organized by year/week
+ObsidianManager       — บันทึก .md ลง vault/ จัดโฟลเดอร์ตามปี/สัปดาห์
        │
        ▼
-HistoryManager        — record processed URLs to prevent reprocessing
+HistoryManager        — บันทึก URL ที่ทำแล้วใน processed_history.json
 ```
 
-Each generated note follows this structure:
+แต่ละ note ที่สร้างจะมีโครงสร้างเสมอ:
 
-- 📌 Market View & Outlook
-- 📊 Key Numbers & Statistics
-- 🎯 Recommended Assets (with reasons)
-- ⚠️ Risks & Warnings
+- 📌 ภาพรวมและมุมมองตลาด
+- 📊 ตัวเลขสำคัญและสถิติ
+- 🎯 สินทรัพย์ที่แนะนำ (พร้อมเหตุผล)
+- ⚠️ ความเสี่ยงและคำเตือน
 
 ---
 
 ## Tech Stack
 
-| Layer | Tool |
+| Layer | เครื่องมือ |
 |---|---|
-| LLM | Google Gemini (`gemini-2.5-flash` or `gemini-3-flash-preview`) |
+| LLM | Google Gemini (`gemini-2.5-flash` หรือ `gemini-3-flash-preview`) |
 | Embeddings | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (HuggingFace) |
 | Vector Store | ChromaDB (persistent local) |
 | Framework | LlamaIndex |
 | Transcript | `youtube-transcript-api` |
 | Note output | Obsidian Markdown |
-| Language | Python 3.11+ |
+| ภาษา | Python 3.11+ |
 
 ---
 
-## Project Structure
+## โครงสร้างโปรเจกต์
 
 ```
 graph-wealth-consensus/
-├── main.py                  # CLI entrypoint — orchestrates the full pipeline
-├── config.py                # Load .env and videos.json
-├── youtube_fetcher.py       # YouTube transcript extraction and metadata
+├── main.py                  # จุดเริ่มต้น CLI — ควบคุม pipeline ทั้งหมด
+├── config.py                # โหลด .env และ videos.json
+├── youtube_fetcher.py       # ดึง transcript + metadata จาก YouTube
 ├── rag_agent_gemini.py      # Gemini LLM wrapper + ChromaDB RAG index
-├── history_manager.py       # Track processed URLs (JSON-based)
-├── obsidian_manager.py      # Build Obsidian Markdown notes
-├── check_models.py          # Utility: list available Gemini models
+├── history_manager.py       # ติดตาม URL ที่ process แล้ว (JSON-based)
+├── obsidian_manager.py      # สร้างไฟล์ Markdown สำหรับ Obsidian
+├── check_models.py          # Utility: ดูรายชื่อ Gemini model ที่ใช้ได้
 ├── inputs/
-│   ├── videos.json          # Define speakers and YouTube URLs to process
-│   └── processed_history.json  # Auto-generated processed URL log
-├── data/                    # Transcript .txt files (auto-generated)
-├── chroma_db_gemini/        # ChromaDB vector store (auto-generated)
-├── vault/                   # Obsidian vault output
+│   ├── videos.json          # กำหนด speaker และ YouTube URL ที่ต้องการสรุป
+│   └── processed_history.json  # ประวัติ URL ที่ทำแล้ว (auto-generated)
+├── data/                    # transcript .txt files (auto-generated, ไม่ commit)
+├── chroma_db_gemini/        # ChromaDB vector store (auto-generated, ไม่ commit)
+├── vault/                   # Obsidian vault output (ไม่ commit)
 │   └── Invest_analyst/
 │       └── {year}/
 │           └── Week_{nn}/
 │               └── {speaker}/
 │                   └── Summary_{speaker}_{timestamp}.md
-├── .env                     # API keys — never commit this
-└── .env.example             # Example .env template
+├── archive/
+│   └── rag_agent.py         # เวอร์ชันเก่าที่ใช้ Ollama (local AI) แทน Gemini
+├── .env                     # API keys — ห้าม commit
+├── .env.example             # ตัวอย่าง .env สำหรับผู้ใช้ใหม่
+└── .gitignore
 ```
 
 ---
 
-## Getting Started
+## การติดตั้ง
 
-### 1. Clone the repository
+### 1. Clone repository
 
 ```bash
 git clone https://github.com/gnoMarkII/graph-wealth-consensus.git
 cd graph-wealth-consensus
 ```
 
-### 2. Create a virtual environment and install dependencies
+### 2. สร้าง virtual environment
 
 ```bash
 python -m venv .venv
@@ -105,67 +108,85 @@ python -m venv .venv
 
 # macOS / Linux
 source .venv/bin/activate
-
-pip install -r requirements.txt
 ```
 
-### 3. Configure your API key
+### 3. ติดตั้ง dependencies
 
 ```bash
+pip install \
+  google-genai \
+  llama-index-core \
+  llama-index-llms-google-genai \
+  llama-index-embeddings-huggingface \
+  llama-index-vector-stores-chroma \
+  chromadb \
+  sentence-transformers \
+  youtube-transcript-api \
+  python-dotenv \
+  requests
+```
+
+### 4. ตั้งค่า API Key
+
+```bash
+# Windows
+copy .env.example .env
+
+# macOS / Linux
 cp .env.example .env
 ```
 
-Open `.env` and add your Google AI API key:
+เปิดไฟล์ `.env` และใส่ Google AI API key:
 
 ```env
 GOOGLE_API_KEY=your_api_key_here
 ```
 
-Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey).
+รับ API key ได้ฟรีที่ [Google AI Studio](https://aistudio.google.com/app/apikey)
 
 ---
 
-## Usage
+## วิธีใช้งาน
 
-### Basic run
+### รันพื้นฐาน
 
 ```bash
 python main.py
 ```
 
-Reads `inputs/videos.json` and processes every URL that has not been processed before.
+โปรแกรมจะอ่าน `inputs/videos.json` และประมวลผล URL ทุกอันที่ยังไม่เคยทำ
 
-### CLI options
+### ตัวเลือก CLI ทั้งหมด
 
 ```
 python main.py [OPTIONS]
 
 Options:
-  -c, --config PATH     Path to videos.json            (default: inputs/videos.json)
-  -v, --vault PATH      Obsidian vault folder           (default: vault)
-  -d, --data-dir PATH   Directory for transcript files  (default: data)
-  -H, --history PATH    Processed URL history file      (default: inputs/processed_history.json)
-  -s, --sleep INT       Cooldown seconds between videos (default: 10)
-  -V, --verbose         Enable debug logging
+  -c, --config PATH     path ของ videos.json              (default: inputs/videos.json)
+  -v, --vault PATH      Obsidian vault folder              (default: vault)
+  -d, --data-dir PATH   โฟลเดอร์สำหรับเก็บ transcript files (default: data)
+  -H, --history PATH    ไฟล์ประวัติ processed URLs          (default: inputs/processed_history.json)
+  -s, --sleep INT       หน่วงเวลา (วินาที) ระหว่างแต่ละวิดีโอ (default: 10)
+  -V, --verbose         เปิด debug logging
 ```
 
-**Examples:**
+**ตัวอย่าง:**
 
 ```bash
-# Use a different config and write to your real Obsidian vault
-python main.py --config my_channels.json --vault /path/to/obsidian/vault
+# ชี้ vault ไปที่โฟลเดอร์ Obsidian จริง
+python main.py --vault "C:/Users/me/Documents/MyVault"
 
-# Enable debug logging with a shorter sleep
-python main.py --verbose --sleep 5
+# ใช้ไฟล์ config คนละชุด และเปิด debug log
+python main.py --config my_channels.json --verbose --sleep 5
 ```
 
-### Check available Gemini models
+### ดูรายชื่อ Gemini model ที่ใช้ได้
 
 ```bash
 python check_models.py
 ```
 
-Lists all Gemini models available to your API key. Set the model in `rag_agent_gemini.py`:
+แสดงรายการ model ทั้งหมดที่ API key ของคุณมีสิทธิ์ใช้งาน จากนั้นเลือก model ใน `rag_agent_gemini.py`:
 
 ```python
 agent = GeminiRAGAgent(model_name="gemini-2.5-flash")
@@ -173,21 +194,21 @@ agent = GeminiRAGAgent(model_name="gemini-2.5-flash")
 
 ---
 
-## Configuration (`inputs/videos.json`)
+## กำหนดช่องที่ต้องการติดตาม (`inputs/videos.json`)
 
-Define the analysts and YouTube URLs you want to track:
+แก้ไขไฟล์นี้เพื่อเพิ่ม/เปลี่ยนช่อง YouTube ที่ต้องการสรุป:
 
 ```json
 [
     {
-        "speaker": "Analyst Name or Channel",
+        "speaker": "ชื่อนักวิเคราะห์หรือช่อง",
         "urls": [
             "https://www.youtube.com/watch?v=VIDEO_ID_1",
             "https://www.youtube.com/watch?v=VIDEO_ID_2"
         ]
     },
     {
-        "speaker": "Another Channel",
+        "speaker": "อีกช่องหนึ่ง",
         "urls": [
             "https://youtu.be/VIDEO_ID_3"
         ]
@@ -195,36 +216,36 @@ Define the analysts and YouTube URLs you want to track:
 ]
 ```
 
-Both `youtube.com/watch?v=` and `youtu.be/` URL formats are supported. Videos must have Thai or English transcripts/subtitles enabled.
+> รองรับทั้ง `youtube.com/watch?v=` และ `youtu.be/` และต้องเป็นคลิปที่เปิด transcript (ซับไตเติ้ล) ภาษาไทยหรืออังกฤษไว้
 
 ---
 
-## Obsidian Integration
+## การเชื่อมกับ Obsidian
 
 ### Knowledge Graph
 
-The AI is instructed to identify and link key entities. When you open **Graph View** in Obsidian, you will see how different analysts' views intersect on the same assets — `[[NVIDIA]]`, `[[Gold]]`, `[[Interest Rates]]`, etc.
+AI ถูกสั่งให้ระบุและเชื่อมโยงชื่อสำคัญทุกชนิด เมื่อเปิด **Graph View** ใน Obsidian จะเห็นว่านักวิเคราะห์หลายคนมองตรงกันที่สินทรัพย์ไหนบ้าง เช่น `[[NVIDIA]]`, `[[ทองคำ]]`, `[[อัตราดอกเบี้ย]]`
 
 ### Weekly Dashboard (Dataview Plugin)
 
-Install the [Dataview](https://github.com/blacksmithgu/obsidian-dataview) plugin in Obsidian and use this query to see the most-mentioned assets for any given week:
+ติดตั้ง plugin [Dataview](https://github.com/blacksmithgu/obsidian-dataview) ใน Obsidian แล้วใช้ query นี้เพื่อดูสินทรัพย์ที่ถูกพูดถึงมากที่สุดในแต่ละสัปดาห์:
 
 ```dataview
-TABLE length(rows) AS "Mentions"
+TABLE length(rows) AS "จำนวนครั้งที่กล่าวถึง"
 FLATTEN file.outlinks AS Keywords
 WHERE week = "Week_15" AND year = 2026
 GROUP BY Keywords
 SORT length(rows) DESC
 ```
 
-### Note structure
+### โครงสร้าง Note ที่ได้
 
-Each generated note includes YAML frontmatter for querying with Dataview:
+แต่ละไฟล์มี YAML frontmatter สำหรับใช้ query กับ Dataview:
 
 ```markdown
 ---
-name: "Video Title"
-speaker: "Channel Name"
+name: "ชื่อคลิป"
+speaker: "ชื่อช่อง"
 week: "Week_15"
 year: "2026"
 upload_date: "2026-04-07"
@@ -233,40 +254,45 @@ created: "2026-04-07 10:04"
 tags: [investment, summary]
 ---
 
-# Video Title
-> **Analyst:** [[Channel Name]]
-> **Period:** [[Investment Overview 2026]] > [[Week_15_2026]]
-> **Source:** [Watch original](URL)
+# ชื่อคลิป
+> **วิเคราะห์โดย:** [[ชื่อช่อง]]
+> **ช่วงเวลา:** [[ภาพรวมการลงทุนปี 2026]] > [[Week_15_2026]]
+> **ลิงก์:** [ดูคลิปต้นฉบับ](URL)
 
-📌 **Market View:** ...
-📊 **Key Numbers:** ...
-🎯 **Recommended Assets:** [[NVDA]], [[Gold]], [[Bond Fund]] ...
-⚠️ **Risks:** ...
+📌 **ภาพรวมและมุมมอง:** ...
+📊 **ตัวเลขสำคัญ:** ...
+🎯 **สินทรัพย์ที่แนะนำ:** [[NVDA]], [[ทองคำ]], [[กองทุนตราสารหนี้]] ...
+⚠️ **ความเสี่ยง:** ...
+
+---
+**🔗 จุดเชื่อมโยง (Knowledge Hub):**
+- นักวิเคราะห์: [[ชื่อช่อง]]
+- บทวิเคราะห์ประจำปี: [[ภาพรวมการลงทุนปี 2026]]
 ```
 
 ---
 
-## Requirements
+## ข้อกำหนดเบื้องต้น
 
-- Python 3.11+
-- Google AI API key
-- YouTube videos must have transcripts (subtitles) enabled in Thai or English
-- Obsidian (optional — the vault output is plain Markdown)
+- Python 3.11 ขึ้นไป
+- Google AI API key (สร้างได้ฟรีที่ Google AI Studio)
+- คลิป YouTube ต้องเปิด transcript/subtitle ภาษาไทยหรืออังกฤษไว้
+- Obsidian (ไม่บังคับ — output เป็น Markdown ธรรมดา ใช้กับโปรแกรมอื่นได้)
 
 ---
 
 ## Contributing
 
-Pull requests and issues are welcome. Feel free to fork and customize the YouTube channels or prompt structure for your own investment research workflow.
+ยินดีต้อนรับ Pull requests และ Issues ทุกรูปแบบ สามารถ fork และปรับแต่งช่อง YouTube หรือโครงสร้าง prompt ให้เหมาะกับ workflow การวิจัยการลงทุนของตัวเองได้เลย
 
 ---
 
-## Disclaimer
+## ข้อจำกัดความรับผิดชอบ
 
-This tool is for educational and informational purposes only. It does not constitute financial advice. Always perform your own due diligence before making any investment decisions.
+เครื่องมือนี้มีไว้เพื่อการศึกษาและให้ข้อมูลเท่านั้น ไม่ถือเป็นคำแนะนำทางการเงิน โปรดศึกษาข้อมูลด้วยตนเองก่อนตัดสินใจลงทุนทุกครั้ง
 
 ---
 
-## Credits
+## เครดิต
 
-Developed by [Money ReRoute](https://github.com/gnoMarkII). This project aims to bridge the gap between AI technology and value investing strategies.
+พัฒนาโดย [Money ReRoute](https://github.com/gnoMarkII) — โปรเจกต์นี้มุ่งเชื่อม AI technology เข้ากับกลยุทธ์การลงทุนแบบ Value Investing
